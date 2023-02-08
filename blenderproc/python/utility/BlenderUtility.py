@@ -13,6 +13,33 @@ import cv2
 
 from blenderproc.python.utility.Utility import Utility
 
+def write_ply(vertices, indices, output_file):
+    if indices is None:
+        indices = []
+
+    file = open(output_file, 'w')
+    file.write('ply \n')
+    file.write('format ascii 1.0\n')
+    file.write('element vertex {:d}\n'.format(len(vertices)))
+    file.write('property float x\n')
+    file.write('property float y\n')
+    file.write('property float z\n')
+    file.write('element face {:d}\n'.format(len(indices)))
+    file.write('property list uchar uint vertex_indices\n')
+    file.write('end_header\n')
+
+    for vertex in vertices:
+        file.write("{:f} {:f} {:f}\n".format(vertex[0], vertex[1], vertex[2]))
+    for ind in indices:
+        file.write('3 {:d} {:d} {:d}\n'.format(ind[0], ind[1], ind[2], ))
+    file.close()
+
+def get_centroid(mesh):
+    x, y, z = [sum([v.co[i] for v in mesh.data.vertices]) for i in range(3)]
+    count = float(len(mesh.data.vertices))
+    center = mesh.matrix_world @ (Vector((x, y, z)) / count)
+
+    return center
 
 def add_object_only_with_vertices(vertices: List[List[float]], name: str = 'NewVertexObject') -> bpy.types.Object:
     """

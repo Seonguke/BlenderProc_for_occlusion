@@ -11,7 +11,7 @@ from blenderproc.python.types.MeshObjectUtility import MeshObject, create_primit
 from blenderproc.python.utility.Utility import KeyFrame
 
 
-def add_camera_pose(cam2world_matrix: Union[np.ndarray, Matrix], frame: Optional[int] = None) -> int:
+def add_camera_pose(room_index,cam2world_matrix: Union[np.ndarray, Matrix], frame: Optional[int] = None) -> int:
     """ Sets a new camera pose to a new or existing frame
 
     :param cam2world_matrix: The transformation matrix from camera to world coordinate system
@@ -32,6 +32,7 @@ def add_camera_pose(cam2world_matrix: Union[np.ndarray, Matrix], frame: Optional
         bpy.context.scene.frame_end = frame + 1
 
     # Persist camera pose
+    cam_ob["room_id"]=room_index
     cam_ob.keyframe_insert(data_path='location', frame=frame)
     cam_ob.keyframe_insert(data_path='rotation_euler', frame=frame)
 

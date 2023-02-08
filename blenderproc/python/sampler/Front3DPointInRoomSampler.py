@@ -20,6 +20,8 @@ class Front3DPointInRoomSampler:
         :param amount_of_objects_needed_per_room: The number of objects a rooms needs to have, such that it is
                                                   considered for sampling.
         """
+
+        #print(front3d_objects)
         front3d_objects = [obj for obj in front3d_objects if obj.has_cp("is_3D_future")]
 
         floor_objs = [obj for obj in front3d_objects if obj.get_name().lower().startswith("floor")]
@@ -39,6 +41,7 @@ class Front3DPointInRoomSampler:
                     floor_obj_counters[floor_obj.get_name()] += 1
         self.used_floors = [obj for obj in floor_objs if
                             floor_obj_counters[obj.get_name()] > amount_of_objects_needed_per_room]
+        #print(self.used_floors)
 
     def sample(self, height: float, max_tries: int = 1000) -> np.ndarray:
         """ Samples a point inside one of the loaded Front3d rooms.

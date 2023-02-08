@@ -8,6 +8,8 @@ blender
 .vscode/
 output/
 debug/
+mytest/
+examples/
 resources/AMASS
 resources/cctextures*
 resources/scenenet/*zip

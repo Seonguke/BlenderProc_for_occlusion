@@ -6,20 +6,25 @@ import warnings
 from math import radians
 from typing import List, Mapping
 from urllib.request import urlretrieve
+from pathlib import Path
 
+import bmesh
 import bpy
 import mathutils
 import numpy as np
-
+import bpy
+#from src.utility.Utility import Utility
+from blenderproc.python.utility.Utility import Utility
 from blenderproc.python.material import MaterialLoaderUtility
 from blenderproc.python.utility.LabelIdMapping import LabelIdMapping
-from blenderproc.python.types.MeshObjectUtility import MeshObject, create_with_empty_mesh
+from blenderproc.python.types.MeshObjectUtility import MeshObject, create_with_empty_mesh, create_from_blender_mesh
 from blenderproc.python.utility.Utility import resolve_path
 from blenderproc.python.loader.ObjectLoader import load_obj
 from blenderproc.python.loader.TextureLoader import load_texture
-
+from blenderproc.python.utility.BlenderUtility import get_centroid, write_ply
 
 def load_front3d(json_path: str, future_model_path: str, front_3D_texture_path: str, label_mapping: LabelIdMapping,
+                 nyu_label_mapping: LabelIdMapping,
                  ceiling_light_strength: float = 0.8, lamp_light_strength: float = 7.0) -> List[MeshObject]:
     """ Loads the 3D-Front scene specified by the given json file.
 
@@ -35,12 +40,14 @@ def load_front3d(json_path: str, future_model_path: str, front_3D_texture_path: 
     future_model_path = resolve_path(future_model_path)
     front_3D_texture_path = resolve_path(front_3D_texture_path)
 
+    loaded_objects = []
     if not os.path.exists(json_path):
         raise FileNotFoundError(f"The given path does not exists: {json_path}")
     if not json_path.endswith(".json"):
         raise FileNotFoundError(f"The given path does not point to a .json file: {json_path}")
     if not os.path.exists(future_model_path):
         raise FileNotFoundError(f"The 3D future model path does not exist: {future_model_path}")
+    output_dir='./mytest/output/'
 
     # load data from json file
     with open(json_path, "r", encoding="utf-8") as json_file:
@@ -50,18 +57,340 @@ def load_front3d(json_path: str, future_model_path: str, front_3D_texture_path: 
         raise ValueError(f"There is no scene data in this json file: {json_path}")
 
     created_objects = _Front3DLoader.create_mesh_objects_from_file(data, front_3D_texture_path,
-                                                                   ceiling_light_strength, label_mapping, json_path)
+                                                                   ceiling_light_strength, label_mapping, json_path,nyu_label_mapping)
 
     all_loaded_furniture = _Front3DLoader.load_furniture_objs(data, future_model_path,
-                                                              lamp_light_strength, label_mapping)
+                                                              lamp_light_strength, label_mapping,nyu_label_mapping)
 
-    created_objects += _Front3DLoader.move_and_duplicate_furniture(data, all_loaded_furniture)
-
+    # created_objects += _Front3DLoader.move_and_duplicate_furniture(data, all_loaded_furniture)
+    loaded_objects = _Front3DLoader.move_and_duplicate_furniture(data, all_loaded_furniture)
+    _assign_parent_node(data, loaded_objects, created_objects)
     # add an identifier to the obj
     for obj in created_objects:
         obj.set_cp("is_3d_front", True)
+    for obj in loaded_objects:
+        obj.set_cp("is_3d_front", True)
 
-    return created_objects
+    #print('go _redraw_walls')
+    _redraw_walls(created_objects,output_dir)
+    _use_floor_shape_as_ceiling(output_dir)
+    # print(x)
+    created_objects+=loaded_objects
+    created_objectss=[]
+    for obj in created_objects:
+        try:
+            obj.has_cp("is_3d_front")
+            created_objectss.append(obj)
+            #print(obj.get_name())
+
+            #print(obj.get_cp("room_id"))
+            #print(obj.get_cp("category_id"))
+        except:
+            #print(obj)
+            continue
+
+    return created_objectss
+def _use_floor_shape_as_ceiling(output_dir):
+    for room_obj in bpy.context.scene.objects:
+        if "is_room" in room_obj and room_obj["is_room"] == 1 and room_obj.name != "unassigned":
+            print(room_obj.name)
+            # Get floor and ceiling pair
+            floor_obj = None
+            ceiling_obj = None
+            for obj in room_obj.children:
+                obj['room_id'] = room_obj["room_id"]
+                if obj.name.startswith("Floor") and obj["nyu_category_id"] == 2 and floor_obj is None:
+                    floor_obj = obj
+
+                if obj.name.startswith("Ceiling") and obj["nyu_category_id"] == 22 and ceiling_obj is None:
+                    ceiling_obj = obj
+
+            if floor_obj is None or ceiling_obj is None:
+                print(f"Room {room_obj.name} has no floor or ceiling")
+                continue
+
+            ceiling_center = get_centroid(ceiling_obj)
+            ceiling_obj.data = floor_obj.data.copy()
+
+            ceiling_obj["room_id"] = room_obj["room_id"]
+
+            for v in ceiling_obj.data.vertices:
+                v.co.z = ceiling_center.z
+
+            # assign material
+            mat = bpy.data.materials.new(name="ceiling_material")
+            mat.use_nodes = True
+            nodes = mat.node_tree.nodes
+            # create a principled node and set the default color
+            principled_node = Utility.get_the_one_node_with_type(nodes, "BsdfPrincipled")
+            principled_node.inputs["Base Color"].default_value = mathutils.Vector([255, 255, 255, 255]) / 255.0
+            # if the object is a ceiling add some light output
+            links = mat.node_tree.links
+            mix_node = nodes.new(type='ShaderNodeMixShader')
+            output = Utility.get_the_one_node_with_type(nodes, 'OutputMaterial')
+            Utility.insert_node_instead_existing_link(links, principled_node.outputs['BSDF'],
+                                                      mix_node.inputs[2], mix_node.outputs['Shader'],
+                                                      output.inputs['Surface'])
+            # The light path node returns 1, if the material is hit by a ray coming from the camera,
+            # else it returns 0. In this way the mix shader will use the principled shader for rendering
+            # the color of the lightbulb itself, while using the emission shader for lighting the scene.
+            light_path_node = nodes.new(type='ShaderNodeLightPath')
+            links.new(light_path_node.outputs['Is Camera Ray'], mix_node.inputs['Fac'])
+
+            emission_node = nodes.new(type='ShaderNodeEmission')
+            # use the same color for the emission light then for the ceiling itself
+            emission_node.inputs["Color"].default_value = mathutils.Vector([255, 255, 255, 255]) / 255.0
+            ceiling_light_strength = 0.8
+            emission_node.inputs["Strength"].default_value = ceiling_light_strength
+
+            links.new(emission_node.outputs["Emission"], mix_node.inputs[1])
+
+            # as this material was just created the material is just appened to the empty list
+            ceiling_obj.data.materials.clear()
+            ceiling_obj.data.materials.append(mat)
+
+
+            output_path = Path(output_dir) / room_obj.name / "ceiling.ply"
+            output_path.parent.mkdir(exist_ok=True, parents=True)
+            vertices = [v.co.to_tuple() for v in ceiling_obj.data.vertices]
+            indices = [[v for v in face.vertices] for face in ceiling_obj.data.polygons]
+            write_ply(vertices, indices, output_path)
+
+
+def _redraw_walls(created_objects,output_dir):
+    # For each room
+    # col = bpy.data.collections.get("Collection")
+    # bpy.ops.object.mode_set(mode='OBJECT')
+
+    # objects = [obj for obj in bpy.context.scene.objects]
+    col = bpy.data.collections.get("Collection")
+
+    for room_obj in bpy.context.scene.objects:
+        '''
+        room_instance_id = room["instanceid"]
+        room_obj = create_with_empty_mesh(room_instance_id, None)
+        room_obj.set_cp("3D_future_type", room["type"])
+        room_obj.set_cp("is_room", True)
+        room_obj.set_cp("room_id", room_id)'''
+        # Check if object is from type room and has bbox
+        #print(room_obj)
+        if "is_room" in room_obj and room_obj["is_room"] == 1 and room_obj.name != "unassigned":
+            room_id = room_obj["room_id"]
+            room_name = room_obj.name
+            # for c_obj in created_objects:
+            #     print(c_obj.get_name())
+                #if room_name == c_obj.get_name():
+                #    print('room_name')
+            #room_p=room_obj.parent
+
+            room_obj_ = MeshObject(room_obj)
+            # Get floor and ceiling pair
+            floor_objs = []
+            ceiling_objs = []
+            for obj in room_obj.children:
+                if obj.name.startswith("Floor") and obj["nyu_category_id"] == 2:
+                    floor_objs.append(obj)
+
+                if obj.name.startswith("Ceiling") and obj["nyu_category_id"] == 22:
+                    ceiling_objs.append(obj)
+
+            if not floor_objs or not ceiling_objs:
+                print(f"Room {room_obj.name} has no floor or ceiling")
+                continue
+
+            num_floors = len(floor_objs)
+            if len(floor_objs) == 1:
+                floor_obj = floor_objs[0]
+            else:
+                # unselect everything
+                for o in bpy.data.objects:
+                    o.select_set(False)
+                    bpy.context.view_layer.objects.active = o
+
+                # join multiple floor objects into one
+                print("Join floor: ", *[o.name for o in floor_objs])
+                for o in floor_objs:
+                    o.select_set(True)
+                    bpy.context.view_layer.objects.active = o
+
+                bpy.ops.object.join()
+                floor_obj = bpy.context.selected_objects[0]
+                floor_obj["num_floors"] = num_floors
+
+                # unselect everything
+                for o in bpy.data.objects:
+                    o.select_set(False)
+
+            if 2 > 1:  # always save
+                output_path = Path(output_dir) / room_obj.name / f"floor.ply"
+                output_path.parent.mkdir(exist_ok=True, parents=True)
+                vertices = [v.co.to_tuple() for v in floor_obj.data.vertices]
+                indices = [[v for v in face.vertices] for face in floor_obj.data.polygons]
+                write_ply(vertices, indices, output_path)
+
+            if len(ceiling_objs) == 1:
+                ceiling_obj = ceiling_objs[0]
+            else:
+                # join multiple floor objects into one
+                print("Join ceiling: ", *[o.name for o in ceiling_objs])
+                for o in ceiling_objs:
+                    o.select_set(True)
+                    bpy.context.view_layer.objects.active = o
+
+                bpy.ops.object.join()
+                ceiling_obj = bpy.context.selected_objects[0]
+                # unselect everything
+                for o in bpy.data.objects:
+                    o.select_set(False)
+                    bpy.context.view_layer.objects.active = o
+
+            print(floor_obj.name, ceiling_obj.name)
+
+            floor_center = get_centroid(floor_obj)
+            ceiling_center = get_centroid(ceiling_obj)
+
+            # Determine height
+            height = ceiling_center.z - floor_center.z
+
+            # Select floor, get boundary edges
+            # bpy.ops.object.mode_set(mode='OBJECT')
+            #        bpy.ops.object.select_all(action='DESELECT')
+
+            for o in bpy.data.objects:
+                bpy.context.view_layer.objects.active = o
+                bpy.ops.object.mode_set(mode='OBJECT')
+                o.select_set(False)
+
+            floor_obj.select_set(True)
+            bpy.context.view_layer.objects.active = floor_obj
+
+            # Merge close vertices, 3D-Front meshes do not share vertices
+            bpy.ops.object.mode_set(mode='EDIT')
+            bpy.ops.mesh.select_all(action='SELECT')
+            bpy.ops.mesh.remove_doubles(threshold=0.05)
+            # floor_obj.update()
+            bpy.ops.object.mode_set(mode='OBJECT')
+
+            bpy.ops.object.mode_set(mode='EDIT')
+            #        bpy.ops.mesh.select_all(action='SELECT')
+            bpy.ops.mesh.region_to_loop()
+            #        bpy.ops.object.mode_set(mode='OBJECT')
+            #        bpy.ops.object.mode_set(mode='EDIT')
+
+            # For each edge in polygon
+            bm = bmesh.from_edit_mesh(floor_obj.data)
+
+            # Create plane from floor to ceiling
+            edge_index = 0
+            for edge in bm.edges:
+                if edge.select:
+                    # print(edge.index, edge.verts[0].co, edge.verts[1].co)
+                    mesh = bpy.data.meshes.new(f"Wall_{edge.index}_mesh")
+                    #obj = bpy.data.objects.new(mesh.name, mesh)
+                    obj = create_from_blender_mesh(mesh,f"Wall_{edge.index}")
+                    instanceid=f"wall/{room_obj['room_id']}_{edge.index}"
+
+
+                    obj.set_parent(room_obj_)
+                    obj.set_cp("is_3D_future",True)
+                    #obj.set_cp("category_id", 13)
+                    obj.set_cp("category_id", 1)
+                    obj.set_cp("nyu_category_id",1)
+                    obj.set_cp("room_id",room_id)
+                    obj.set_cp("instanceid",instanceid)
+                    obj.set_cp("is_3d_front", True)
+                    #obj.name = mesh.name
+                    #obj.parent = room_obj
+
+                    #obj["is_3d_front"] = True
+                    #obj["is_3D_future"]=True
+                    #obj["nyu_category_id"] = 1
+                    #obj["category_id"] = 13
+                    #obj["room_id"] = room_obj["room_id"]
+                    #obj["instanceid"] = f"wall/{room_obj['room_id']}_{edge.index}"
+                    #obj.set_cp("is_3d_front",True)
+                    created_objects.append(obj)
+                    #bpy.context.collection.objects.link(obj)
+                    v0 = edge.verts[0].co
+                    v1 = edge.verts[1].co
+
+                    v2 = v0.copy()
+                    v2.z += height
+
+                    v3 = v1.copy()
+                    v3.z += height
+
+                    # print("Quad", v0, v1, v2, v3)
+                    faces = [(0, 3, 2), (0, 1, 3)]
+                    mesh.from_pydata([v0.to_tuple(), v1.to_tuple(), v2.to_tuple(), v3.to_tuple()], [], faces)
+                    #mat = bpy.data.materials.new(name=mesh.name + "_material")
+                    mat = MaterialLoaderUtility.create(name=mesh.name + "_material")
+                    #mat.use_nodes = True
+                    #nodes = mat.node_tree.nodes
+                    # create a principled node and set the default color
+                    #principled_node = Utility.get_the_one_node_with_type( nodes,"BsdfPrincipled")
+                    principled_node = mat.get_the_one_node_with_type("BsdfPrincipled")
+                    principled_node.inputs["Base Color"].default_value = mathutils.Vector([255, 255, 255, 255]) / 255.0
+                    obj.add_material(mat)
+                    #obj.data.materials.append(mat)
+                    if 2 > 1:
+                        output_path = Path(
+                            output_dir) / room_name / f"wall_{edge_index:02d}.ply"
+                        output_path.parent.mkdir(exist_ok=True, parents=True)
+                        vertices = [v0.to_tuple(), v1.to_tuple(), v2.to_tuple(), v3.to_tuple()]
+                        indices = [(0, 3, 2), (0, 1, 3)]
+                        write_ply(vertices, indices, output_path)
+
+                    edge_index += 1
+
+            bpy.ops.object.mode_set(mode='OBJECT')
+            #print(x)
+
+
+def _assign_parent_node(data, loaded_objects, created_objects):
+    assigned_objects = set()
+    for room_id, room in enumerate(data["scene"]["room"]):
+        # create new node for each room
+        room_instance_id = room["instanceid"]
+        room_obj = create_with_empty_mesh(room_instance_id, None)
+        room_obj.set_cp("3D_future_type", room["type"])
+        room_obj.set_cp("is_room", True)
+        room_obj.set_cp("room_id", room_id)
+        #bpy.context.scene.collection.objects.link(room_obj)
+
+        # for each object in that room assign newly created node as parent
+        for child in room["children"]:
+            for obj in created_objects:
+
+                if obj.get_cp("uid") == child["ref"]:
+                    #print(obj)
+                    #print(room_obj)
+                    obj.set_parent(room_obj)#obj는 mesh room_obj empty
+                    #print(obj.get_parent())
+                    #print(f"Assign {obj['uid']} to {room_instance_id}")
+                    assigned_objects.add(obj)
+
+            for obj in loaded_objects:
+                #print(obj.get_cp("room_id"))
+                if obj.get_cp("room_id") == room_id:
+                    #print(obj)
+                    #print(room_obj)
+                    #obj.parent = room_obj
+                    obj.set_parent(room_obj)
+                    #print(f"Assign {obj['uid']} to {room_instance_id}")
+                    assigned_objects.add(obj)
+                    # break
+
+    all_objects = set([obj for obj in created_objects]).union([obj for obj in loaded_objects])
+    missing_objects = all_objects.difference(assigned_objects)
+
+    #node_obj = bpy.data.objects.new("unassigned", None)
+    node_obj = create_with_empty_mesh("unassigned", None)
+    #bpy.context.scene.collection.objects.link(node_obj)
+    for obj in missing_objects:
+        obj.set_parent(node_obj)
+
+    print(f"------------Missing objects-------------:", "\n".join([s["uid"] for s in missing_objects]))
 
 
 class _Front3DLoader:
@@ -124,7 +453,7 @@ class _Front3DLoader:
 
     @staticmethod
     def create_mesh_objects_from_file(data: dict, front_3D_texture_path: str, ceiling_light_strength: float,
-                                      label_mapping: LabelIdMapping, json_path: str) -> List[MeshObject]:
+                                      label_mapping: LabelIdMapping, json_path: str,nyu_label_mapping) -> List[MeshObject]:
         """
         This creates for a given data json block all defined meshes and assigns the correct materials.
         This means that the json file contains some mesh, like walls and floors, which have to built up manually.
@@ -143,7 +472,9 @@ class _Front3DLoader:
         for mat in data["material"]:
             used_materials.append({"uid": mat["uid"], "texture": mat["texture"],
                                    "normaltexture": mat["normaltexture"], "color": mat["color"]})
-
+        #ignore_object_types=["SlabSide","Front"]
+        ignore_object_types = ["WallOuter", "WallBottom", "WallTop", "Pocket", "SlabSide", "SlabBottom", "SlabTop",
+                               "Front", "Back", "Baseboard", "Door", "Window", "BayWindow", "Hole", "WallInner", "Beam"]
         created_objects = []
         # maps loaded images from image file path to bpy.type.image
         saved_images = {}
@@ -161,12 +492,18 @@ class _Front3DLoader:
                 warnings.warn(f"Material is not defined for {used_obj_name} in this file: {json_path}")
                 continue
             # create a new mesh
+            if used_obj_name in ignore_object_types:
+                print(f"Ignore {used_obj_name}")
+                continue
             obj = create_with_empty_mesh(used_obj_name, used_obj_name + "_mesh")
+            obj.set_cp("uid",mesh_data["uid"])
             created_objects.append(obj)
 
             # set two custom properties, first that it is a 3D_future object and second the category_id
             obj.set_cp("is_3D_future", True)
-            obj.set_cp("category_id", label_mapping.id_from_label(used_obj_name.lower()))
+            obj.set_cp("category_id", nyu_label_mapping[used_obj_name.lower()])
+            #obj.set_cp("category_id", label_mapping.id_from_label(used_obj_name.lower()))
+            obj.set_cp("nyu_category_id", nyu_label_mapping[used_obj_name.lower()])
 
             # get the material uid of the current mesh data
             current_mat = mesh_data["material"]
@@ -292,19 +629,28 @@ class _Front3DLoader:
 
             # this update converts the upper data into a mesh
             mesh.update()
+        for room in data["scene"]["room"]:
+            # for each object in that room
+            for child in room["children"]:
+                if "mesh" in child["instanceid"]:
+                    # find the object where the uid matches the child ref id
+                    for obj in created_objects:
+                        if obj.get_cp("uid") == child["ref"]:
+                            obj.set_cp("instanceid", child["instanceid"])
 
-            # the generation might fail if the data does not line up
-            # this is not used as even if the data does not line up it is still able to render the objects
-            # We assume that not all meshes in the dataset do conform with the mesh standards set in blender
-            # result = mesh.validate(verbose=False)
-            # if result:
-            #    raise Exception("The generation of the mesh: {} failed!".format(used_obj_name))
+
+        # the generation might fail if the data does not line up
+        # this is not used as even if the data does not line up it is still able to render the objects
+        # We assume that not all meshes in the dataset do conform with the mesh standards set in blender
+        # result = mesh.validate(verbose=False)
+        # if result:
+        #    raise Exception("The generation of the mesh: {} failed!".format(used_obj_name))
 
         return created_objects
 
     @staticmethod
     def load_furniture_objs(data: dict, future_model_path: str, lamp_light_strength: float,
-                            label_mapping: LabelIdMapping) -> List[MeshObject]:
+                            label_mapping: LabelIdMapping,nyu_label_mapping) -> List[MeshObject]:
         """
         Load all furniture objects specified in the json file, these objects are stored as "raw_model.obj" in the
         3D_future_model_path. For lamp the lamp_light_strength value can be changed via the config.
@@ -315,6 +661,8 @@ class _Front3DLoader:
         :param label_mapping: A dict which maps the names of the objects to ids.
         :return: The list of loaded mesh objects.
         """
+        # mapping_file = resolve_path(os.path.join("front_3D", "3D_front_mapping.csv"))
+
         # collect all loaded furniture objects
         all_objs = []
         # for each furniture element
@@ -347,8 +695,18 @@ class _Front3DLoader:
                     obj.set_cp("is_3D_future", True)
                     obj.set_cp("3D_future_type", "Non-Object")  # is an non object used for the interesting score
                     # set the category id based on the used obj name
-                    obj.set_cp("category_id", label_mapping.id_from_label(used_obj_name.lower()))
+                    category_key = used_obj_name.lower()
+
+                    try:
+                        obj.set_cp("category_id", nyu_label_mapping[used_obj_name.lower()])
+                        #obj.set_cp("category_id", label_mapping.id_from_label(used_obj_name.lower()))
+                        obj.set_cp("nyu_category_id", nyu_label_mapping[used_obj_name.lower()])
+                    except:
+                        print(f"{category_key} not in mapping")
+                        obj.set_cp("category_id", -1)
+                        obj.set_cp("nyu_category_id", -1)
                     # walk over all materials
+
                     for mat in obj.get_materials():
                         if mat is None:
                             continue

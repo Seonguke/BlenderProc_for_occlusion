@@ -1,0 +1,100 @@
+id,name
+0,void
+1,wallinner
+1,walltop
+1,customizedfeaturewall
+1,wallbottom
+1,wallouter
+2,customizedplatform
+2,floor
+3,cabinet/lightband
+3,children cabinet
+3,storage unit
+3,media unit
+3,sideboard / side cabinet / console
+3,cabinet
+3,drawer chest / corner cabinet
+3,tv stand
+3,wine cooler
+3,cabinet/shelf/desk
+3,wardrobe
+4,bed
+4,kids bed
+4,double bed
+4,single bed
+4,bunk bed
+4,bed frame
+5,dining chair
+5,armchair
+5,footstool / sofastool / bed end stool / stool
+5,pier/stool
+5,chair
+5,classic chinese chair
+5,lounge chair / book-chair / computer chair
+5,dressing chair
+5,barstool
+6,chaise longue sofa
+6,lazy sofa
+6,two-seat sofa
+6,sofa
+6,three-seat / multi-person sofa
+6,l-shaped sofa
+7,tea table
+7,round end table
+7,table
+7,dining table
+7,corner/side table
+7,dressing table
+8,door
+9,baywindow
+9,window
+10,bookcase / jewelry armoire
+12,kitchen cabinet
+14,desk
+15,shelf
+19,mirror
+22,smartcustomizedceiling
+22,ceiling
+22,extrusioncustomizedceilingmodel
+22,customizedceiling
+32,nightstand
+34,basin
+35,ceiling lamp
+35,lighting
+35,pendant lamp
+35,lightband
+36,bath
+37,pocket
+38,cornice
+38,sewerpipe
+38,hole
+38,build element
+38,others
+38,slabside
+38,electric
+38,front
+38,500 - attach to ceiling
+38,customizedbackgroundmodel
+38,back
+38,beam
+38,stair
+38,slabbottom
+38,column
+38,extrusioncustomizedbackgroundwall
+38,electronics
+38,customizedfixedfurniture
+38,customized_wainscot
+39,appliance
+39,plants
+39,slabtop
+1,baseboard
+39,customizedpersonalizedmodel
+39,customizedfurniture
+39,400 - attach to wall
+39,art
+39,200 - on the floor
+39,outdoor furniture
+39,recreation
+40,300 - on top of others
+40,accessory
+40,flue

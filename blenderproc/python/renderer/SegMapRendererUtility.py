@@ -103,16 +103,16 @@ def render_segmap(output_dir: Optional[str] = None, temp_dir: Optional[str] = No
             suffixes = [""]
 
         return_dict: Dict[str, Union[np.ndarray, List[np.ndarray]]] = {}
-
+        save_in_csv_attributes: Dict[int, Dict[str, Any]] = {}
         # After rendering
         for frame in range(bpy.context.scene.frame_start, bpy.context.scene.frame_end):  # for each rendered frame
-            save_in_csv_attributes: Dict[int, Dict[str, Any]] = {}
+            #save_in_csv_attributes: Dict[int, Dict[str, Any]] = {}
 
             there_was_an_instance_rendering = False
             for suffix in suffixes:
                 file_path = temporary_segmentation_file_path + f"{frame:04d}" + suffix + ".exr"
                 segmentation = load_image(file_path)
-                print(file_path, segmentation.shape)
+                #print(file_path, segmentation.shape)
 
                 segmap = Utility.map_back_from_equally_spaced_equidistant_values(segmentation,
                                                                                  num_splits_per_dimension,

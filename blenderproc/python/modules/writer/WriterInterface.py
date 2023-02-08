@@ -69,10 +69,12 @@ class WriterInterface(Module):
             return
 
         file_prefix = self.config.get_string("output_file_prefix", default_file_prefix)
-        path_prefix = os.path.join(self._determine_output_dir(), file_prefix)
+        path_prefix = os.path.join(self._determine_output_dir(output_is_temp_default=False), file_prefix)
+        #print(self.config.get_list("attributes_to_write", default_attributes))
         item_writer.write_items_to_file(path_prefix, items, self.config.get_list("attributes_to_write", default_attributes), world_frame_change=self.destination_frame)
-        Utility.register_output(self._determine_output_dir(), file_prefix, self.config.get_string("output_key", default_output_key), ".npy", version)
-            
+
+        Utility.register_output(self._determine_output_dir(output_is_temp_default=False), file_prefix, self.config.get_string("output_key", default_output_key), ".npy", version)
+
     def _apply_postprocessing(self, output_key: str, data: np.ndarray, version: str):
         """
         Applies all postprocessing modules registered for this output type.

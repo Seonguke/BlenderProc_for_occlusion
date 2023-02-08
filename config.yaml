@@ -1,0 +1,22 @@
+# Args: <PATH_TO_3D-Front_json> <PATH_TO_3D-Future-model> <PATH_TO_3D-FRONT-texture-path> <output>
+{
+  "version": 3,
+  "setup": {
+    "blender_install_path": "C:\\Users\\esc15\\blender\\blender-3.3.0-windows-x64\\",
+    "pip": [
+      "h5py"
+    ]
+  },
+  "modules": [
+    {
+      "module": "writer.CameraStateWriter",
+      "config":{
+
+          "output_dir": "./mytest/output/",
+          "temp_dir":  "./mytest/output/",
+           "attributes_to_write": [ "matrix", "location", "rotation_euler", "fov_x", "fov_y", "customprop_room_id" ]
+
+      }
+    }
+  ]
+}

@@ -145,9 +145,10 @@ class _WriterUtility:
                 else:
                     # per run outputs
                     output_path = resolve_path(reg_out['path'])
+                    print(output_path)
                     output_file = _WriterUtility.load_output_file(output_path, key_has_alpha_channel)
                     output_data_dict[reg_out['key']] = output_file
-
+        print(reg_outputs)
         return output_data_dict
 
     @staticmethod
@@ -166,7 +167,7 @@ class _WriterUtility:
 
     @staticmethod
     def load_output_file(file_path: str, load_alpha_channel: bool = False,
-                         remove: bool = True) -> Union[np.ndarray, List[Any]]:
+                         remove: bool = False) -> Union[np.ndarray, List[Any]]:
         """ Tries to read in the file with the given path into a numpy array.
 
         :param file_path: The file path. Type: string.
@@ -188,7 +189,7 @@ class _WriterUtility:
             output = _WriterUtility.load_csv(file_path)
         else:
             raise NotImplementedError("File with ending " + file_ending + " cannot be loaded.")
-
+        #print(remove)
         if remove:
             os.remove(file_path)
         return output
@@ -234,7 +235,9 @@ class _WriterUtility:
                                                                         "rotation_forward_vec", "rotation_up_vec"]:
             print("Warning: The local_frame_change parameter is at the moment only supported by "
                   "the matrix_world attribute.")
-
+        #print(item)
+        if attribute_name == "matrix":
+            return np.array(item.matrix_world).tolist()
         if attribute_name == "name":
             return item.name
         if attribute_name == "location":
