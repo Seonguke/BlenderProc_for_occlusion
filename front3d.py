@@ -3,6 +3,8 @@ import argparse
 import os
 import numpy as np
 import csv
+import json
+from pathlib import Path
 import bpy
 from mathutils import Vector, Matrix
 from blenderproc.python.modules.utility.ConfigParser import ConfigParser
@@ -14,8 +16,8 @@ from blenderproc.python.utility.CollisionUtility import CollisionUtility
 # pydevd_pycharm.settrace('localhost', port=8888, stdoutToServer=True, stderrToServer=True)
 pan_root='D:\\3D_Front\\front3d\\00ad8345-45e0-45b3-867d-4a3c88c2517a\\'
 root_path='D:\\3D_Front\\'
-config_path= 'C:\\Users\\esc15\\PycharmProjects\\pythonProject2\\BlenderProc\\config.yaml'
-output_dir = 'C:\\Users\\esc15\\PycharmProjects\\pythonProject2\\BlenderProc\\mytest\\output\\'
+config_path= 'C:\\Users\\esc15\\PycharmProjects\\pythonProject2\\BlenderProc_for_occlusion\\config.yaml'
+output_dir = 'C:\\Users\\esc15\\PycharmProjects\\pythonProject2\\BlenderProc_for_occlusion\\mytest\\output2\\'
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--front",default='D:\\3D_Front\\3D-FRONT\\3D-FRONT\\00ad8345-45e0-45b3-867d-4a3c88c2517a.json', help="Path to the 3D front file")
@@ -184,6 +186,20 @@ def read_csv_mapping(path):
             new_label_id_map[row["name"]] = int(row["id"])
 
         return new_id_label_map, new_label_id_map
+def save_room_mapping(output_path):
+    rooms={}
+    for room_obj in bpy.context.scene.objects:
+        if "is_room" in room_obj and room_obj["is_room"] == 1:
+            floors = list(filter(lambda x: x.name.lower().startswith("floor"), room_obj.children))
+            if len(floors)>0:
+                floor = floors[0]
+                rooms[room_obj.name] = room_obj, floor, room_obj["room_id"]
+            else:
+                rooms[room_obj.name] = room_obj, floors, room_obj["room_id"]
+    output_path = Path(output_path) / f"room_mapping.json"
+    with open(output_path, "w") as f:
+        name_index_mapping = {obj[2]: name for name, obj in rooms.items()}
+        json.dump(name_index_mapping, f, indent=4)
 #---------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 if not os.path.exists(args.front) or not os.path.exists(args.future_folder):
     raise Exception("One of the two folders does not exist!")
@@ -202,7 +218,7 @@ bproc.renderer.set_light_bounces(diffuse_bounces=200, glossy_bounces=200, max_bo
 height = 0.75 # Blender Cam position
 room_map=dict()
 hide_obj_num=2
-save_pictures = 10
+save_pictures = 1
 tries = 0
 poses = 0
 
@@ -299,12 +315,13 @@ while tries < 50000 and poses <save_pictures:
             bpy.data.objects[arr[i]].keyframe_insert(data_path="location", frame=fr+1)
         bproc.camera.add_camera_pose(room_id, cam2world_matrix)
 
-        for i in range(hide_obj_num):
-            print(bpy.data.objects[arr[i]].location)
+        # for i in range(hide_obj_num):
+        #     print(bpy.data.objects[arr[i]].location)
         poses += 1
     tries += 1
 
 
+save_room_mapping(output_dir)
 #save_camera_parameter
 config_parser=ConfigParser(silent=True)
 config = config_parser.parse( bproc.utility.resolve_resource(config_path), arg)
