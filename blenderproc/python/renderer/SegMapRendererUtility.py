@@ -217,24 +217,24 @@ def render_segmap(output_dir: Optional[str] = None, temp_dir: Optional[str] = No
 
                 # write color mappings to file
                 # TODO: Remove unnecessary csv file when we give up backwards compatibility
-                csv_file_path = os.path.join(output_dir, segcolormap_output_file_prefix + f"{frame:04d}.csv")
-                with open(csv_file_path, 'w', newline='', encoding="utf-8") as csvfile:
-                    # get from the first element the used field names
-                    fieldnames = ["idx"]
-                    # get all used object element keys
-                    for object_element in save_in_csv_attributes.values():
-                        fieldnames.extend(list(object_element.keys()))
-                        break
-                    for channel_name in channels:
-                        fieldnames.append(f"channel_{channel_name}")
-                    writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
-                    writer.writeheader()
-                    # save for each object all values in one row
-                    for obj_idx, object_element in save_in_csv_attributes.items():
-                        object_element["idx"] = obj_idx
-                        for i, channel_name in enumerate(channels):
-                            object_element[f"channel_{channel_name}"] = i
-                        writer.writerow(object_element)
+                # csv_file_path = os.path.join(output_dir, segcolormap_output_file_prefix + f"{frame:04d}.csv")
+                # with open(csv_file_path, 'w', newline='', encoding="utf-8") as csvfile:
+                #     # get from the first element the used field names
+                #     fieldnames = ["idx"]
+                #     # get all used object element keys
+                #     for object_element in save_in_csv_attributes.values():
+                #         fieldnames.extend(list(object_element.keys()))
+                #         break
+                #     for channel_name in channels:
+                #         fieldnames.append(f"channel_{channel_name}")
+                #     writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
+                #     writer.writeheader()
+                #     # save for each object all values in one row
+                #     for obj_idx, object_element in save_in_csv_attributes.items():
+                #         object_element["idx"] = obj_idx
+                #         for i, channel_name in enumerate(channels):
+                #             object_element[f"channel_{channel_name}"] = i
+                #         writer.writerow(object_element)
             else:
                 if len(list_of_attributes) > 0:
                     raise RuntimeError(f"There were attributes specified in the may_by, which could not be saved as "
@@ -243,7 +243,24 @@ def render_segmap(output_dir: Optional[str] = None, temp_dir: Optional[str] = No
                 # if there was no instance rendering no .csv file is generated!
                 # delete all saved info about .csv
                 save_in_csv_attributes = {}
-
+        csv_file_path = os.path.join(output_dir, "class_inst_col_map.csv")
+        with open(csv_file_path, 'w', newline='', encoding="utf-8") as csvfile:
+            # get from the first element the used field names
+            fieldnames = ["idx"]
+            # get all used object element keys
+            for object_element in save_in_csv_attributes.values():
+                fieldnames.extend(list(object_element.keys()))
+                break
+            for channel_name in channels:
+                fieldnames.append(f"channel_{channel_name}")
+            writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
+            writer.writeheader()
+            # save for each object all values in one row
+            for obj_idx, object_element in save_in_csv_attributes.items():
+                object_element["idx"] = obj_idx
+                for i, channel_name in enumerate(channels):
+                    object_element[f"channel_{channel_name}"] = i
+                writer.writerow(object_element)
     Utility.register_output(output_dir, file_prefix, output_key, ".npy", "2.0.0")
 
     if save_in_csv_attributes:
