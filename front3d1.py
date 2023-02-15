@@ -3,6 +3,8 @@ import argparse
 import os
 import numpy as np
 import csv
+import json
+from pathlib import Path
 import bpy
 from mathutils import Vector, Matrix
 from blenderproc.python.modules.utility.ConfigParser import ConfigParser
@@ -12,7 +14,6 @@ from blenderproc.python.types.MeshObjectUtility import MeshObject
 from blenderproc.python.utility.CollisionUtility import CollisionUtility
 # import pydevd_pycharm
 # pydevd_pycharm.settrace('localhost', port=8888, stdoutToServer=True, stderrToServer=True)
-
 '''
 pan_root='D:\\3D_Front\\front3d\\00ad8345-45e0-45b3-867d-4a3c88c2517a\\'
 root_path='D:\\3D_Front\\'
@@ -39,10 +40,21 @@ config_path= 'C:\\Users\\lab-com\\Desktop\\myspace\\\BlenderProc_for_occlusion\\
 output_dir = 'C:\\Users\\lab-com\\Desktop\\myspace\\BlenderProc_for_occlusion\\mytest\\output\\'
 
 parser = argparse.ArgumentParser()
+
+
+
 parser.add_argument("--front",default='G:\\3D_Front\\3D-FRONT\\3D-FRONT\\00ad8345-45e0-45b3-867d-4a3c88c2517a.json', help="Path to the 3D front file")
 parser.add_argument("--future_folder", default='G:\\3D_Front\\3D-FUTURE-model\\', help="Path to the 3D Future Model folder.")
 parser.add_argument("--front_3D_texture_path", default='G:\\3D_Front\\3D-FRONT-texture\\3D-FRONT-texture\\', help="Path to the 3D FRONT texture folder.")
 parser.add_argument("--output_dir",default=output_dir,help="Path to where the data should be saved")
+
+
+'''
+parser.add_argument("--front",default='', help="Path to the 3D front file")
+parser.add_argument("--future_folder", default='G:\\3D_Front\\3D-FUTURE-model\\', help="Path to the 3D Future Model folder.")
+parser.add_argument("--front_3D_texture_path", default='G:\\3D_Front\\3D-FRONT-texture\\3D-FRONT-texture\\', help="Path to the 3D FRONT texture folder.")
+parser.add_argument("--output_dir",default='',help="Path to where the data should be saved")
+'''
 args = parser.parse_args()
 
 arg=[]
@@ -51,7 +63,7 @@ arg.append(args.future_folder)
 arg.append(args.front_3D_texture_path)
 arg.append(args.output_dir)
 
-
+output_dir = args.output_dir
 
 def check_name(name):
     for category_name in ["cabinet", "sofa", "table", "bed","shelf","wardrobe","furniture","bookcase","jewrly"]:
@@ -206,6 +218,20 @@ def read_csv_mapping(path):
             new_label_id_map[row["name"]] = int(row["id"])
 
         return new_id_label_map, new_label_id_map
+def save_room_mapping(output_path):
+    rooms={}
+    for room_obj in bpy.context.scene.objects:
+        if "is_room" in room_obj and room_obj["is_room"] == 1:
+            floors = list(filter(lambda x: x.name.lower().startswith("floor"), room_obj.children))
+            if len(floors)>0:
+                floor = floors[0]
+                rooms[room_obj.name] = room_obj, floor, room_obj["room_id"]
+            else:
+                rooms[room_obj.name] = room_obj, floors, room_obj["room_id"]
+    output_path = Path(output_path) / f"room_mapping.json"
+    with open(output_path, "w") as f:
+        name_index_mapping = {obj[2]: name for name, obj in rooms.items()}
+        json.dump(name_index_mapping, f, indent=4)
 #---------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 if not os.path.exists(args.front) or not os.path.exists(args.future_folder):
     raise Exception("One of the two folders does not exist!")
@@ -223,8 +249,11 @@ bproc.renderer.set_light_bounces(diffuse_bounces=200, glossy_bounces=200, max_bo
 
 height = 0.75 # Blender Cam position
 room_map=dict()
+
 hide_obj_num=2
-save_pictures = 10
+#save_pictures = 1
+save_pictures = 1
+
 tries = 0
 poses = 0
 
@@ -256,8 +285,26 @@ special_objects = [obj.get_cp("category_id") for obj in loaded_objects if check_
 
 proximity_checks = {"min": 1.0, "avg": {"min": 2.5, "max": 3.5}, "no_background": True}
 
+
+import json
+
+#print(args.front)
+
+'''
+json_name = args.front
+print(json_name)
+json_name = os.path.basename(json_name)
+print(json_name)
+json_name = args.output_dir + 
+
+for i in range(0,save_pictures):
+    if (i % 3 == 0):
+        print(i)
+'''
+
+
 # Find out the camera poses
-while tries < 50000 and poses <save_pictures:
+while tries < 50000 and poses < save_pictures:
 #while tries < 3 and poses < 3:
     # Sample point inside house
 
@@ -321,26 +368,65 @@ while tries < 50000 and poses <save_pictures:
             bpy.data.objects[arr[i]].keyframe_insert(data_path="location", frame=fr+1)
         bproc.camera.add_camera_pose(room_id, cam2world_matrix)
 
-        for i in range(hide_obj_num):
-            print(bpy.data.objects[arr[i]].location)
+        # for i in range(hide_obj_num):
+        #     print(bpy.data.objects[arr[i]].location)
         poses += 1
     tries += 1
 
-
+print("\n\n\nLDY1 :", output_dir)
+save_room_mapping(output_dir)
 #save_camera_parameter
 config_parser=ConfigParser(silent=True)
 config = config_parser.parse( bproc.utility.resolve_resource(config_path), arg)
+
+'''
+config["modules"][0]["config"]["output_dir"] = output_dir
+config["modules"][0]["config"]["temp_dir"] = output_dir
+'''
+
+
+
 module=Utility.initialize_modules(config["modules"])
+
+print("\n\n\nLDY1.1 :", config)
+print("\n\n\nLDY1.2 :", module)
+print("\n\n\nLDY1.3 :", config["modules"])
+print("\n\n\nLDY1.4 :", config["modules"][0])
+print("\n\n\nLDY1.41 :", config["modules"][0]["config"])
+print("\n\n\nLDY1.42 :", config["modules"][0]["config"]["output_dir"])
+print("\n\n\nLDY1.43 :", config["modules"][0]["config"]["temp_dir"])
+#print("\n\n\nLDY1.5 :", config["modules"][0][0])
+
+
+print("\n\n\nLDY1.5 :", module[0])
+#print("\n\n\nLDY1.6 :", module[0][0])
+
+
+print("\n\n\nLDY2 :", output_dir)
+
+
+
+'''
+config["modules"] = output_dir
+config["temp_dir"] = output_dir
+'''
+
 
 for mod in module:
     mod.run()
 
+
+print("\n\n\nLDY2.1 :", output_dir)
+
+
 # Render with saved cmara poses
 bproc.renderer.enable_depth_output(activate_antialiasing=False,output_dir=output_dir)
-#bproc.renderer.enable_segmentation_output(map_by=["class", "instance", "name", "jid", "instanceid"],default_values={"jid": "", "instanceid": ""})
+#bproc.renderer.enable_depth_output(activate_antialiasing=False,output_dir="./output_LDY")
+bproc.renderer.enable_segmentation_output(map_by=["class", "instance", "name", "jid", "instanceid"],default_values={"jid": "", "instanceid": ""})
 data = bproc.renderer.render(output_dir=output_dir)
+#data = bproc.renderer.render(output_dir="./output_LDY")
 bproc.renderer.render_segmap(map_by=["class", "instance", "name", "jid", "instanceid"],default_values={"jid": "", "instanceid": ""},output_dir=output_dir)
 
-
+print("\n\n\nLDY3 :", output_dir)
 
 

@@ -51,17 +51,11 @@ def dishow(disp, p):
     plt.close()
 
 
-p = 'C:\\Users\\esc15\\PycharmProjects\\pythonProject2\\vox\\'
-sem = p + '00ad8345-45e0-45b3-867d-4a3c88c2517a\\segmentation_0.sem'
-np.savez(p + '0000.npz', data=data)
-reader = BinaryReader(sem)
-dimX, dimY, dimZ = reader.read('UINT64', 3)
-data = reader.read('float', dimX * dimY * dimZ)
-data = np.reshape(data, (dimX, dimY, dimZ), order='F').astype(np.float32)
-# data = np.expand_dims(np.reshape(data, (dimX, dimY, dimZ), order='F'), 0).astype(np.float32)
+p='C:\\Users\\lab-com\\Desktop\\myspace\\BlenderProc_for_occlusion\\mytest\\output\\'
+
 
 #### Tdf
-reader = BinaryReader(p + 'dist_.bin')
+reader = BinaryReader(p + 'dist_0000.bin')
 dimX, dimY, dimZ = reader.read('UINT64', 3)
 data = reader.read('float', dimX * dimY * dimZ)
 data = np.reshape(data, (dimX, dimY, dimZ), order='F').astype(np.float32)
@@ -69,7 +63,7 @@ data = np.pad(data, ((12, 13), (41, 41), (34, 35)), 'constant', constant_values=
 data[data > 8] = 12
 np.savez(p + 'my_geom.npz', data=data)
 #### wighting mask
-reader = BinaryReader(p + 'dist_.bin')
+reader = BinaryReader(p + 'dist_0000.bin')
 dimX, dimY, dimZ = reader.read('UINT64', 3)
 data = reader.read('float', dimX * dimY * dimZ)
 data = np.reshape(data, (dimX, dimY, dimZ), order='F').astype(np.float32)

@@ -14,6 +14,8 @@ from blenderproc.python.types.MeshObjectUtility import MeshObject
 from blenderproc.python.utility.CollisionUtility import CollisionUtility
 # import pydevd_pycharm
 # pydevd_pycharm.settrace('localhost', port=8888, stdoutToServer=True, stderrToServer=True)
+
+'''
 pan_root='D:\\3D_Front\\front3d\\00ad8345-45e0-45b3-867d-4a3c88c2517a\\'
 root_path='D:\\3D_Front\\'
 config_path= 'C:\\Users\\esc15\\PycharmProjects\\pythonProject2\\BlenderProc_for_occlusion\\config.yaml'
@@ -23,6 +25,22 @@ parser = argparse.ArgumentParser()
 parser.add_argument("--front",default='D:\\3D_Front\\3D-FRONT\\3D-FRONT\\00ad8345-45e0-45b3-867d-4a3c88c2517a.json', help="Path to the 3D front file")
 parser.add_argument("--future_folder", default='D:\\3D_Front\\3D-FUTURE-model\\', help="Path to the 3D Future Model folder.")
 parser.add_argument("--front_3D_texture_path", default='D:\\3D_Front\\3D-FRONT-texture\\3D-FRONT-texture\\', help="Path to the 3D FRONT texture folder.")
+parser.add_argument("--output_dir",default=output_dir,help="Path to where the data should be saved")
+args = parser.parse_args()
+'''
+
+pan_root='G:\\3D_Front\\front3d\\00ad8345-45e0-45b3-867d-4a3c88c2517a\\'
+root_path='G:\\3D_Front\\'
+config_path= 'C:\\Users\\lab-com\\Desktop\\myspace\\\BlenderProc_for_occlusion\\config.yaml'
+output_dir = 'C:\\Users\\lab-com\\Desktop\\myspace\\BlenderProc_for_occlusion\\LDYtest\\output\\'
+
+parser = argparse.ArgumentParser()
+
+
+
+parser.add_argument("--front",default='G:\\3D_Front\\3D-FRONT\\3D-FRONT\\00ad8345-45e0-45b3-867d-4a3c88c2517a.json', help="Path to the 3D front file")
+parser.add_argument("--future_folder", default='G:\\3D_Front\\3D-FUTURE-model\\', help="Path to the 3D Future Model folder.")
+parser.add_argument("--front_3D_texture_path", default='G:\\3D_Front\\3D-FRONT-texture\\3D-FRONT-texture\\', help="Path to the 3D FRONT texture folder.")
 parser.add_argument("--output_dir",default=output_dir,help="Path to where the data should be saved")
 args = parser.parse_args()
 
