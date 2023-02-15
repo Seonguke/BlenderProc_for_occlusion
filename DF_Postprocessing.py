@@ -47,7 +47,8 @@ def dishow(disp, p):
     plt.xlabel('X Pixel')
     plt.ylabel('Y Pixel')
     plt.plot
-    plt.savefig(p + '.png')
+    plt.show()
+    #plt.savefig(p + '.png')
     plt.close()
 
 
@@ -62,6 +63,7 @@ data = np.reshape(data, (dimX, dimY, dimZ), order='F').astype(np.float32)
 data = np.pad(data, ((12, 13), (41, 41), (34, 35)), 'constant', constant_values=12)
 data[data > 8] = 12
 np.savez(p + 'my_geom.npz', data=data)
+
 #### wighting mask
 reader = BinaryReader(p + 'dist_0000.bin')
 dimX, dimY, dimZ = reader.read('UINT64', 3)

@@ -23,7 +23,7 @@ from blenderproc.python.loader.ObjectLoader import load_obj
 from blenderproc.python.loader.TextureLoader import load_texture
 from blenderproc.python.utility.BlenderUtility import get_centroid, write_ply
 
-def load_front3d(json_path: str, future_model_path: str, front_3D_texture_path: str, label_mapping: LabelIdMapping,
+def load_front3d(output_dir:str, json_path: str, future_model_path: str, front_3D_texture_path: str, label_mapping: LabelIdMapping,
                  nyu_label_mapping: LabelIdMapping,
                  ceiling_light_strength: float = 0.8, lamp_light_strength: float = 7.0) -> List[MeshObject]:
     """ Loads the 3D-Front scene specified by the given json file.
@@ -47,7 +47,6 @@ def load_front3d(json_path: str, future_model_path: str, front_3D_texture_path: 
         raise FileNotFoundError(f"The given path does not point to a .json file: {json_path}")
     if not os.path.exists(future_model_path):
         raise FileNotFoundError(f"The 3D future model path does not exist: {future_model_path}")
-    output_dir='./mytest/output/'
 
     # load data from json file
     with open(json_path, "r", encoding="utf-8") as json_file:

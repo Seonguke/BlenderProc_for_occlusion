@@ -14,15 +14,15 @@ from blenderproc.python.types.MeshObjectUtility import MeshObject
 from blenderproc.python.utility.CollisionUtility import CollisionUtility
 # import pydevd_pycharm
 # pydevd_pycharm.settrace('localhost', port=8888, stdoutToServer=True, stderrToServer=True)
+#pan_root='D:\\3D_Front\\front3d\\00ad8345-45e0-45b3-867d-4a3c88c2517a\\'
+pan_root='D:\\3D_Front\\front3d\\00add26c-7a26-4a61-b192-b97aa493b3f3\\'
 
-'''
-pan_root='D:\\3D_Front\\front3d\\00ad8345-45e0-45b3-867d-4a3c88c2517a\\'
 root_path='D:\\3D_Front\\'
 config_path= 'C:\\Users\\esc15\\PycharmProjects\\pythonProject2\\BlenderProc_for_occlusion\\config.yaml'
 output_dir = 'C:\\Users\\esc15\\PycharmProjects\\pythonProject2\\BlenderProc_for_occlusion\\mytest\\output2\\'
 
 parser = argparse.ArgumentParser()
-parser.add_argument("--front",default='D:\\3D_Front\\3D-FRONT\\3D-FRONT\\00ad8345-45e0-45b3-867d-4a3c88c2517a.json', help="Path to the 3D front file")
+parser.add_argument("--front",default='D:\\3D_Front\\3D-FRONT\\3D-FRONT\\00add26c-7a26-4a61-b192-b97aa493b3f3.json', help="Path to the 3D front file")
 parser.add_argument("--future_folder", default='D:\\3D_Front\\3D-FUTURE-model\\', help="Path to the 3D Future Model folder.")
 parser.add_argument("--front_3D_texture_path", default='D:\\3D_Front\\3D-FRONT-texture\\3D-FRONT-texture\\', help="Path to the 3D FRONT texture folder.")
 parser.add_argument("--output_dir",default=output_dir,help="Path to where the data should be saved")
@@ -236,7 +236,7 @@ bproc.renderer.set_light_bounces(diffuse_bounces=200, glossy_bounces=200, max_bo
 height = 0.75 # Blender Cam position
 room_map=dict()
 hide_obj_num=2
-save_pictures = 1
+save_pictures = 100
 tries = 0
 poses = 0
 
@@ -248,6 +248,7 @@ _,nyu_mapping =read_csv_mapping(nyu_mapping_file)
 
 # load the front 3D objects
 loaded_objects = bproc.loader.load_front3d(
+    output_dir = output_dir,
     json_path=args.front,
     future_model_path=args.future_folder,
     front_3D_texture_path=args.front_3D_texture_path,
