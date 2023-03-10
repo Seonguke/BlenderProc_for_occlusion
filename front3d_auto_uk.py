@@ -223,8 +223,8 @@ bproc.renderer.set_light_bounces(diffuse_bounces=200, glossy_bounces=200, max_bo
 
 height = 0.75 # Blender Cam position
 room_map=dict()
-hide_obj_num=2
-save_pictures = 10
+hide_obj_num=1
+save_pictures = 5
 tries = 0
 poses = 0
 
@@ -287,7 +287,7 @@ while tries < 50000 and poses <save_pictures:
         d = dict(sorted(d.items(), key=lambda item: item[1]))
         arr= list(d.keys()) # Object name
 
-        if len(arr) <=hide_obj_num or 'lighting' in arr[0].lower()or 'plants' in arr[0].lower()or 'lighting' in arr[1].lower() or d[arr[0]]<0.12:
+        if len(arr) <=hide_obj_num or 'lighting' in arr[0]or 'plants' in arr[0]or 'lighting' in arr[1] or d[arr[0]]<0.12:
             continue
 
 
@@ -296,13 +296,12 @@ while tries < 50000 and poses <save_pictures:
         bbox = []
         for i in range(hide_obj_num+1):
             bbox.append(get_2d_bounding_box(bpy.data.objects[arr[i]],cam2world_matrix))
-        # if IoU(bbox[0], bbox[1]) < 0.2 or IoU(bbox[0], bbox[1]) > 0.6:
-        #     continue
+        if IoU(bbox[0], bbox[1]) < 0.2 or IoU(bbox[0], bbox[1]) > 0.6:
+            continue
+        # if IoU(bbox[0],bbox[1])<0.2 or IoU(bbox[0],bbox[1])>0.6 or IoU(bbox[1],bbox[2])<0.1 or IoU(bbox[1],bbox[2])>0.6 :
+        #    continue
 
-        if IoU(bbox[0],bbox[1])<0.2 or IoU(bbox[0],bbox[1])>0.6 or IoU(bbox[1],bbox[2])<0.1 or IoU(bbox[1],bbox[2])>0.6 :
-           continue
 
-        print(arr)
         frame=bproc.camera.add_camera_pose(room_id,cam2world_matrix)
 
         # Erase objects
@@ -311,19 +310,17 @@ while tries < 50000 and poses <save_pictures:
             bpy.data.objects[arr[i]].location.z-= 100
             bpy.data.objects[arr[i]].keyframe_insert(data_path="location", frame=frame)
             #bproc.camera.add_camera_pose(room_id, cam2world_matrix)
-
-
-        # 첫번째 이미지
+        # for i in range(hide_obj_num):
+        #     print(bpy.data.objects[arr[i]].location)
         fr = bpy.context.scene.frame_end
-        bpy.data.objects[arr[1]].location.z = 0
-        bpy.data.objects[arr[1]].keyframe_insert(data_path="location", frame=fr)
-        bproc.camera.add_camera_pose(room_id, cam2world_matrix)
+        # bpy.data.objects[arr[1]].location.z = 0
+        # bpy.data.objects[arr[1]].keyframe_insert(data_path="location", frame=fr)
+        # bproc.camera.add_camera_pose(room_id, cam2world_matrix)
 
-        #두번째 이미지
-        fr = bpy.context.scene.frame_end
+
         for i in reversed(range(hide_obj_num)):
             bpy.data.objects[arr[i]].location.z=0
-            bpy.data.objects[arr[i]].keyframe_insert(data_path="location", frame=fr)
+            bpy.data.objects[arr[i]].keyframe_insert(data_path="location", frame=frame+1)
         bproc.camera.add_camera_pose(room_id, cam2world_matrix)
 
         # for i in range(hide_obj_num):
@@ -350,4 +347,3 @@ bproc.renderer.render_segmap(map_by=["class", "instance", "name", "jid", "instan
 
 
 
-print('h')
