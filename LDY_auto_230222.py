@@ -28,13 +28,16 @@ for i in range(0,1000):
 json_root = []
 save_root = []
 #save_path = "./output_LDY/"
-save_path = 'C:\\Users\\lab-com\\Desktop\\myspace\\BlenderProc_for_occlusion\\output_LDY\\'
 
+
+save_path = 'C:\\Users\\lab-com\\Desktop\\myspace\\BlenderProc_for_occlusion\\test230309\\'
+#save_path = 'Z:\\PCL\\LDY\\output_front3d_6000\\'
 
 #dir_path = "G:3D_Front/3D-FRONT/3D-FRONT/"
 dir_path = "G:\\3D_Front\\3D-FRONT\\3D-FRONT\\"
 
 count = 0
+
 
 for (root, directories, files) in os.walk(dir_path):
     for file in files:
@@ -46,28 +49,48 @@ for (root, directories, files) in os.walk(dir_path):
 
             #os.mkdir(save_path + name)
             save_root.append(save_path + name)
+            
             count = count + 1
-            if (count==5):
+            if (count==1):
                 break
-
-print(save_root)
-
-print("json files : ", len(json_root))
 
 
 '''
+json_root = ['G:\\3D_Front\\3D-FRONT\\3D-FRONT\\00154c06-2ee2-408a-9664-b8fd74742897.json']
+save_root = ['C:\\Users\\lab-com\\Desktop\\myspace\\BlenderProc_for_occlusion\\test230227\\00154c06-2ee2-408a-9664-b8fd74742897\\']
+'''
+
+#print(save_root)
+print("json files : ", len(json_root))
+
+
+
+
+'''
+#for i in range(0,len(json_root)):
+for i in range(0, 3000):
+    os.mkdir(save_root[i])
+'''
+
 for i in range(0,len(json_root)):
+#for i in range(0,3000):
+
+
+    os.mkdir(save_root[i])
+
     #cmd = "python -m blenderproc run .\\front3d.py " + "--front=" + str(json_root[i]) + " --future_folder=G:\\3D-FUTURE-model --front_3D_texture_path=G:\\3D-FRONT-texture\\3D-FRONT-texture\\00cc8b1d-b284-4108-a48f-a18c320a9d3a\\ --output_dir=./output_LDY/ " + str(save_root[i])
-    cmd = "python -m blenderproc run ./front3d.py " + "--front=" + str(json_root[i]) + " --future_folder=G:\\3D_Front\\3D-FUTURE-model --front_3D_texture_path=G:\\3D_Front\\3D-FRONT-texture\\3D-FRONT-texture\\00cc8b1d-b284-4108-a48f-a18c320a9d3a\\ --output_dir=" + str(save_root[i])
+    cmd = "python -m blenderproc run ./front3d_230222.py " + "--front=" + str(json_root[i]) + " --future_folder=G:\\3D_Front\\3D-FUTURE-model --front_3D_texture_path=G:\\3D_Front\\3D-FRONT-texture\\3D-FRONT-texture\\00cc8b1d-b284-4108-a48f-a18c320a9d3a\\ --output_dir=" + str(save_root[i])
 
     print(i, " : ", len(json_root))
     print("\n",cmd,"\n")
 
 
     os.system(cmd)
+
+
+
+
 '''
-
-
 f = open("shell_script.sh", 'w')
 for i in range(0,len(json_root)):
     #print(save_root[i]+'/campose_0000.npy')
@@ -82,4 +105,4 @@ for i in range(0,len(json_root)):
         data = "/home/edge/projects/voxel/bin/x64/Release/voxel.out " + task + " \\n" + "\n"
         f.write(data)
 f.close()
-
+'''

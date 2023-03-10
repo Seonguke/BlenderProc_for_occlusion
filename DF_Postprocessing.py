@@ -52,20 +52,41 @@ def dishow(disp, p):
     plt.close()
 
 
-p='C:\\Users\\lab-com\\Desktop\\myspace\\BlenderProc_for_occlusion\\mytest\\output\\'
+#p='C:\\Users\\lab-com\\Desktop\\myspace\\BlenderProc_for_occlusion\\mytest\\output\\'
+folder = '00154c06-2ee2-408a-9664-b8fd74742897'
+p='C:\\Users\\lab-com\\Desktop\\myspace\\BlenderProc_for_occlusion\\output_VOXEL\\' + folder + '\\'
+
+num = '0027'
+#num = str(num)
+
+Tdf = 'dist_' + num + '.bin'
+#Tdf_out = 'my_geom_' + num + '.npz'
+Tdf_out = 'mask_my_geom_' + num + '.npz'
+
+wighting_mask = 'dist_' + num + '.bin'
+#wighting_mask_out = 'my_weight_' + num + '.npz'
+wighting_mask_out = 'mask_my_weight_' + num + '.npz'
 
 
 #### Tdf
-reader = BinaryReader(p + 'dist_0000.bin')
+#reader = BinaryReader(p + 'dist_0000.bin')
+mask= np.load("./frustum_mask.npz")
+mask = mask['mask']
+
+reader = BinaryReader(p + Tdf)
 dimX, dimY, dimZ = reader.read('UINT64', 3)
 data = reader.read('float', dimX * dimY * dimZ)
 data = np.reshape(data, (dimX, dimY, dimZ), order='F').astype(np.float32)
 data = np.pad(data, ((12, 13), (41, 41), (34, 35)), 'constant', constant_values=12)
+
 data[data > 8] = 12
-np.savez(p + 'my_geom.npz', data=data)
+data[mask==0] = 12
+
+np.savez(p + Tdf_out, data=data)
 
 #### wighting mask
-reader = BinaryReader(p + 'dist_0000.bin')
+#reader = BinaryReader(p + 'dist_0000.bin')
+reader = BinaryReader(p + wighting_mask)
 dimX, dimY, dimZ = reader.read('UINT64', 3)
 data = reader.read('float', dimX * dimY * dimZ)
 data = np.reshape(data, (dimX, dimY, dimZ), order='F').astype(np.float32)
@@ -73,8 +94,16 @@ data = np.pad(data, ((12, 13), (41, 41), (34, 35)), 'constant', constant_values=
 data[data > 2] = -1
 data[data > 1] = -5
 data[data > 0] = -10
+data[mask==0] = -10
 data = -data
-np.savez(p + 'my_weight.npz', data=data)
+
+
+#np.savez(p + 'my_weight.npz', data=data)
+np.savez(p + wighting_mask_out, data=data)
+
+
+
+
 
 arr = []
 for item in range(18):

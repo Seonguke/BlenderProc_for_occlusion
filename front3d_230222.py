@@ -14,22 +14,32 @@ from blenderproc.python.types.MeshObjectUtility import MeshObject
 from blenderproc.python.utility.CollisionUtility import CollisionUtility
 # import pydevd_pycharm
 # pydevd_pycharm.settrace('localhost', port=8888, stdoutToServer=True, stderrToServer=True)
-#pan_root='D:\\3D_Front\\front3d\\00ad8345-45e0-45b3-867d-4a3c88c2517a\\'
 
 '''
-pan_root='D:\\3D_Front\\front3d\\00add26c-7a26-4a61-b192-b97aa493b3f3\\'
+json_name = '0a8d471a-2587-458a-9214-586e003e9cf9'
+
+pan_root='D:\\3D_Front\\front3d\\'+json_name+'\\'
+#pan_root='D:\\3D_Front\\front3d\\00add26c-7a26-4a61-b192-b97aa493b3f3\\'
+
 root_path='D:\\3D_Front\\'
 config_path= 'C:\\Users\\esc15\\PycharmProjects\\pythonProject2\\BlenderProc_for_occlusion\\config.yaml'
-output_dir = 'C:\\Users\\esc15\\PycharmProjects\\pythonProject2\\BlenderProc_for_occlusion\\mytest\\output2\\'
+output_dir = 'C:\\Users\\esc15\\PycharmProjects\\pythonProject2\\BlenderProc_for_occlusion\\mytest\\'+json_name+'\\'
 
 parser = argparse.ArgumentParser()
-parser.add_argument("--front",default='D:\\3D_Front\\3D-FRONT\\3D-FRONT\\00add26c-7a26-4a61-b192-b97aa493b3f3.json', help="Path to the 3D front file")
+parser.add_argument("--front",default='D:\\3D_Front\\3D-FRONT\\3D-FRONT\\'+json_name+'.json', help="Path to the 3D front file")
 parser.add_argument("--future_folder", default='D:\\3D_Front\\3D-FUTURE-model\\', help="Path to the 3D Future Model folder.")
 parser.add_argument("--front_3D_texture_path", default='D:\\3D_Front\\3D-FRONT-texture\\3D-FRONT-texture\\', help="Path to the 3D FRONT texture folder.")
 parser.add_argument("--output_dir",default=output_dir,help="Path to where the data should be saved")
 args = parser.parse_args()
-'''
 
+arg=[]
+arg.append(args.front)
+arg.append(args.future_folder)
+arg.append(args.front_3D_texture_path)
+arg.append(args.output_dir)
+
+output_dir = args.output_dir
+'''
 
 #pan_root='G:\\3D_Front\\front3d\\00ad8345-45e0-45b3-867d-4a3c88c2517a\\'
 root_path='G:\\3D_Front\\'
@@ -46,14 +56,31 @@ parser.add_argument("--front_3D_texture_path", default='G:\\3D_Front\\3D-FRONT-t
 parser.add_argument("--output_dir",default=None,help="Path to where the data should be saved")
 args = parser.parse_args()
 
+
+#python -m blenderproc run ./front3d_230222.py " + "--front=" + str(json_root[i]) +
+# " --future_folder=G:\\3D_Front\\3D-FUTURE-model
+#  --front_3D_texture_path=G:\\3D_Front\\3D-FRONT-texture\\3D-FRONT-texture\\00cc8b1d-b284-4108-a48f-a18c320a9d3a\\
+# --output_dir=" + str(save_root[i])
+
+
+'''
+args.front = 'G:\\3D_Front\\3D-FRONT\\3D-FRONT\\00154c06-2ee2-408a-9664-b8fd74742897.json'
+args.front_3D_texture_path = 'G:\\3D_Front\\3D-FRONT-texture\\3D-FRONT-texture\\00cc8b1d-b284-4108-a48f-a18c320a9d3a\\'
+args.output_dir = 'C:\\Users\\lab-com\\Desktop\\myspace\\BlenderProc_for_occlusion\\test230227\\00154c06-2ee2-408a-9664-b8fd74742897\\'
+'''
+
+
 arg=[]
 arg.append(args.front)
 arg.append(args.future_folder)
 arg.append(args.front_3D_texture_path)
 arg.append(args.output_dir)
 
-output_dir = args.output_dir
 
+
+
+
+output_dir = args.output_dir
 
 def check_name(name):
     for category_name in ["cabinet", "sofa", "table", "bed","shelf","wardrobe","furniture","bookcase","jewrly"]:
@@ -232,18 +259,23 @@ bproc.camera.set_resolution(320, 240)
 bproc.camera.set_intrinsics_from_blender_params(lens=1.0471975511, lens_unit="FOV")
 
 mapping_file = bproc.utility.resolve_resource(os.path.join("front_3D", "3D_front_mapping.csv"))
+#mapping_file = bproc.utility.resolve_resource(os.path.join("front_3D", "3D_front_nyu_mapping_origin_LDY.csv"))
+
 nyu_mapping_file = bproc.utility.resolve_resource(os.path.join("front_3D", "3D_front_nyu_mapping_origin_uk.csv"))
+#nyu_mapping_file = bproc.utility.resolve_resource(os.path.join("front_3D", "3D_front_nyu_mapping_origin_LDY.csv"))
+
 # set the light bounces
 bproc.renderer.set_light_bounces(diffuse_bounces=200, glossy_bounces=200, max_bounces=200,
                                   transmission_bounces=200, transparent_max_bounces=200)
 
 height = 0.75 # Blender Cam position
 room_map=dict()
-hide_obj_num=2
-#save_pictures = 100
+hide_obj_num=1
+#save_pictures = 50
 save_pictures = 10
 tries = 0
 poses = 0
+
 
 ########################################
 
@@ -304,19 +336,42 @@ while tries < 50000 and poses <save_pictures:
         d = dict(sorted(d.items(), key=lambda item: item[1]))
         arr= list(d.keys()) # Object name
 
-        if len(arr) <hide_obj_num or 'lighting' in arr[0] or 'lighting' in arr[1] or d[arr[0]]<0.1:
+        if len(arr) <=hide_obj_num or 'lighting' in arr[0]or 'plants' in arr[0]or 'lighting' in arr[1] or d[arr[0]]<0.12:
             continue
 
+        #LDY
+        print("LDY -----")
+        print(arr)
+        #print(arr[0])
+        #print(arr[1])
+                
+        
+        '''
+            if 'bed' in arr:
+            print('LDY There is a bed')
+            print(arr)
+            continue
+        '''
 
+        count = 0
+        for i in range(0, len(arr)):
+            if 'bed' in arr[i] or 'Bed' in arr[i]:
+                count += 1
+        if count != 0:
+            print("LDY there is a bed")
+            continue
+    
+        
 
         # approximate bbox and iou
         #Is there occlusion each other?
         bbox = []
-        for i in range(hide_obj_num):
+        for i in range(hide_obj_num+1):
             bbox.append(get_2d_bounding_box(bpy.data.objects[arr[i]],cam2world_matrix))
-
-        if IoU(bbox[0],bbox[1])<0.2 or IoU(bbox[0],bbox[1])>0.6 :
-           continue
+        if IoU(bbox[0], bbox[1]) < 0.2 or IoU(bbox[0], bbox[1]) > 0.6:
+            continue
+        # if IoU(bbox[0],bbox[1])<0.2 or IoU(bbox[0],bbox[1])>0.6 or IoU(bbox[1],bbox[2])<0.1 or IoU(bbox[1],bbox[2])>0.6 :
+        #    continue
 
 
         frame=bproc.camera.add_camera_pose(room_id,cam2world_matrix)
@@ -330,14 +385,14 @@ while tries < 50000 and poses <save_pictures:
         # for i in range(hide_obj_num):
         #     print(bpy.data.objects[arr[i]].location)
         fr = bpy.context.scene.frame_end
-        bpy.data.objects[arr[1]].location.z = 0
-        bpy.data.objects[arr[1]].keyframe_insert(data_path="location", frame=fr)
-        bproc.camera.add_camera_pose(room_id, cam2world_matrix)
+        # bpy.data.objects[arr[1]].location.z = 0
+        # bpy.data.objects[arr[1]].keyframe_insert(data_path="location", frame=fr)
+        # bproc.camera.add_camera_pose(room_id, cam2world_matrix)
 
 
         for i in reversed(range(hide_obj_num)):
             bpy.data.objects[arr[i]].location.z=0
-            bpy.data.objects[arr[i]].keyframe_insert(data_path="location", frame=fr+1)
+            bpy.data.objects[arr[i]].keyframe_insert(data_path="location", frame=frame+1)
         bproc.camera.add_camera_pose(room_id, cam2world_matrix)
 
         # for i in range(hide_obj_num):
@@ -346,11 +401,7 @@ while tries < 50000 and poses <save_pictures:
     tries += 1
 
 
-
-
-
 save_room_mapping(output_dir)
-
 #save_camera_parameter
 config_parser=ConfigParser(silent=True)
 config = config_parser.parse( bproc.utility.resolve_resource(config_path), arg)
@@ -364,37 +415,16 @@ config['modules'][0]['config']['output_dir'] = output_dir
 config['modules'][0]['config']['temp_dir'] = output_dir
 
 
-
 module=Utility.initialize_modules(config["modules"])
-
 
 for mod in module:
     mod.run()
 
-
 # Render with saved cmara poses
 bproc.renderer.enable_depth_output(activate_antialiasing=False,output_dir=output_dir)
-
 #bproc.renderer.enable_segmentation_output(map_by=["class", "instance", "name", "jid", "instanceid"],default_values={"jid": "", "instanceid": ""})
 data = bproc.renderer.render(output_dir=output_dir)
-
 bproc.renderer.render_segmap(map_by=["class", "instance", "name", "jid", "instanceid"],default_values={"jid": "", "instanceid": ""},output_dir=output_dir)
 
 
 
-
-#json file 생성
-json_list = []
-for i in range(0, (save_pictures*3)):
-    if((i%3)==0):
-        index = '' + str(i) + ''
-        json_list.append(index)
-
-print("\n\n\n\n\n\n", json_list)
-print(save_pictures)
-
-json_name = os.path.basename(output_dir)
-json_path = "C:\\Users\\lab-com\\Desktop\\myspace\\\BlenderProc_for_occlusion\\output_JSON_LDY\\" + str(json_name) + ".json"
-
-with open(json_path, 'w') as f:
-    json.dump(json_list, f, indent="\t")

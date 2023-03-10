@@ -474,6 +474,9 @@ class _Front3DLoader:
         #ignore_object_types=["SlabSide","Front"]
         ignore_object_types = ["WallOuter", "WallBottom", "WallTop", "Pocket", "SlabSide", "SlabBottom", "SlabTop",
                                "Front", "Back", "Baseboard", "Door", "Window", "BayWindow", "Hole", "WallInner", "Beam"]
+        
+        
+
         created_objects = []
         # maps loaded images from image file path to bpy.type.image
         saved_images = {}
@@ -494,6 +497,17 @@ class _Front3DLoader:
             if used_obj_name in ignore_object_types:
                 print(f"Ignore {used_obj_name}")
                 continue
+            
+            '''
+            LDY_object_types = ["bed", "Ceiling", "Floor"]
+            if (used_obj_name in LDY_object_types) != True:
+                print(f"1 LDY pass {used_obj_name}")
+                continue
+    
+            print(f"2 LDY check {used_obj_name}")
+            '''
+
+
             obj = create_with_empty_mesh(used_obj_name, used_obj_name + "_mesh")
             obj.set_cp("uid",mesh_data["uid"])
             created_objects.append(obj)
@@ -665,7 +679,18 @@ class _Front3DLoader:
         # collect all loaded furniture objects
         all_objs = []
         # for each furniture element
+        #print("LDY check 0 :", data["furniture"])
         for ele in data["furniture"]:
+
+
+            '''
+            print("LDY check 0.1 :", ele)
+            print("LDY check 0.1 :", ele["jid"])
+            print("LDY check 0.1 :", ele["title"])
+            '''
+
+
+
             # create the paths based on the "jid"
             folder_path = os.path.join(future_model_path, ele["jid"])
             obj_file = os.path.join(folder_path, "raw_model.obj")
@@ -676,6 +701,22 @@ class _Front3DLoader:
                 objs = load_obj(filepath=obj_file)
                 # extract the name, which serves as category id
                 used_obj_name = ""
+
+                #LDY <-
+                '''
+                if ("category" in ele) == False:
+                    continue
+                '''
+                '''
+                if ("category" in ele) == True:
+                    print("LDY -------------------------", ele["category"])
+                    if (ele["category"] == "bed"):
+                        print("LDY Good -------------------------")
+                '''
+                #LDY ->
+
+
+
                 if "category" in ele:
                     used_obj_name = ele["category"]
                 elif "title" in ele:
@@ -696,15 +737,28 @@ class _Front3DLoader:
                     # set the category id based on the used obj name
                     category_key = used_obj_name.lower()
 
+                    #print("LDY key", category_key) #others, armchair...
+                    
                     try:
                         obj.set_cp("category_id", nyu_label_mapping[used_obj_name.lower()])
                         #obj.set_cp("category_id", label_mapping.id_from_label(used_obj_name.lower()))
                         obj.set_cp("nyu_category_id", nyu_label_mapping[used_obj_name.lower()])
+
+                        #print("LDY category_id", nyu_label_mapping[used_obj_name.lower()])
+                        #print(("LDY nyu_category_id", nyu_label_mapping[used_obj_name.lower()]))
                     except:
                         print(f"{category_key} not in mapping")
                         obj.set_cp("category_id", -1)
                         obj.set_cp("nyu_category_id", -1)
                     # walk over all materials
+
+
+                    '''
+                    checking = nyu_label_mapping[used_obj_name.lower()]
+                    if (checking == 4):
+                        print("LDY it is a bed")
+                        continue
+                    '''
 
                     for mat in obj.get_materials():
                         if mat is None:
@@ -740,6 +794,7 @@ class _Front3DLoader:
                 all_objs.extend(objs)
             elif "7e101ef3-7722-4af8-90d5-7c562834fabd" in obj_file:
                 warnings.warn(f"This file {obj_file} was skipped as it can not be read by blender.")
+            #print("LDY check : ", all_objs)
         return all_objs
 
     @staticmethod
@@ -753,6 +808,9 @@ class _Front3DLoader:
         :param all_loaded_furniture: all objects which have been loaded in load_furniture_objs
         :return: The list of loaded mesh objects.
         """
+
+
+        '''
         # this rotation matrix rotates the given quaternion into the blender coordinate system
         blender_rot_mat = mathutils.Matrix.Rotation(radians(-90), 4, 'X')
         created_objects = []
@@ -763,6 +821,15 @@ class _Front3DLoader:
                 if "furniture" in child["instanceid"]:
                     # find the object where the uid matches the child ref id
                     for obj in all_loaded_furniture:
+                        
+                        
+                        #print("LDY check :", obj.get_cp("category_id"))
+                        #if obj.get_cp("category_id") == 4:
+                        #    print("LDY check :", obj.get_cp("category_id"))
+                        #    continue
+                        
+
+
                         if obj.get_cp("uid") == child["ref"]:
                             # if the object was used before, duplicate the object and move that duplicated obj
                             if obj.get_cp("is_used"):
@@ -783,3 +850,74 @@ class _Front3DLoader:
                             # transform it into the blender coordinate system and then to an euler
                             new_obj.set_rotation_euler((blender_rot_mat @ rotation_mat).to_euler())
         return created_objects
+        '''
+
+        
+        # this rotation matrix rotates the given quaternion into the blender coordinate system
+        blender_rot_mat = mathutils.Matrix.Rotation(radians(-90), 4, 'X')
+        created_objects = []
+                                
+        equal_objs = []
+        prev_uid = ''
+        # for each room
+        for room_id, room in enumerate(data["scene"]["room"]):
+            # for each object in that room
+            for child in room["children"]:
+                if "furniture" in child["instanceid"]:
+                    # find the object where the uid matches the child ref id
+                    for obj in all_loaded_furniture:
+                        if obj.get_cp("uid") == child["ref"]:
+                            # if the object was used before, duplicate the object and move that duplicated obj
+                            if obj.get_cp("is_used"):
+                                new_obj = obj.duplicate()
+                            else:
+                                # if it is the first time use the object directly
+                                new_obj = obj
+                            new_obj.set_cp("is_used", True)
+                            new_obj.set_cp("room_id", room_id)
+                            #new_obj.set_cp("type", "Object")  # is an object used for the interesting score
+                            new_obj.set_cp("3D_future_type", "Object")
+                            new_obj.set_cp("coarse_grained_class", new_obj.get_cp("category_id"))
+                            # this flips the y and z coordinate to bring it to the blender coordinate system
+                            new_obj.set_location(mathutils.Vector(child["pos"]).xzy)
+                            new_obj.set_scale(child["scale"])
+                            # extract the quaternion and convert it to a rotation matrix
+                            rotation_mat = mathutils.Quaternion(child["rot"]).to_euler().to_matrix().to_4x4()
+                            # transform it into the blender coordinate system and then to an euler
+                            new_obj.set_rotation_euler((blender_rot_mat @ rotation_mat).to_euler())
+                            
+
+
+
+                            if new_obj.get_cp("uid") == prev_uid:
+                                equal_objs[-1].append(new_obj)
+                            else:
+                                equal_objs.append([new_obj])
+                                prev_uid = new_obj.get_cp("uid")
+
+
+
+        for i in equal_objs:
+            if len(i) == 1:
+                created_objects.append(i[0])
+                bpy.ops.object.origin_set(type='ORIGIN_GEOMETRY', center='MEDIAN')
+
+            else:
+                for obj in bpy.context.selected_objects:
+                    obj.select_set(False)
+                
+                if i[0].blender_obj.type == "MESH":
+                    bpy.context.view_layer.objects.active = None
+                    print(i[0].blender_obj.name)
+                    for obj in i:
+                        obj.blender_obj.select_set(True)
+
+                    bpy.context.view_layer.objects.active = i[0].blender_obj
+                    bpy.ops.object.origin_set(type='ORIGIN_GEOMETRY', center='MEDIAN')
+
+                    created_objects.append(i[0])
+                    print("JOINED")
+                    bpy.ops.object.join()
+
+        return created_objects
+        

@@ -292,7 +292,7 @@ def enable_depth_output(activate_antialiasing: bool, output_dir: Optional[str] =
 
     # Feed the Z-Buffer output of the render layer to the input of the file IO layer
     links.new(render_layer_node.outputs["Depth"], output_file.inputs['Image'])
-
+    print("\n\n\n blenderproc/python/renderer/RendererUtility.py LDY\n\n\n")
     Utility.add_output_entry({
         "key": output_key,
         "path": os.path.join(output_dir, file_prefix) + "%04d" + ".exr",
